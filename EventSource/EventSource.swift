@@ -114,6 +114,24 @@ open class EventSource: NSObject, EventSourceProtocol, URLSessionDataDelegate {
         urlSession = URLSession(configuration: configuration, delegate: self, delegateQueue: operationQueue)
         urlSession?.dataTask(with: url).resume()
     }
+    
+    public func connect(with params: [String: Any],lastEventId: String? = nil) {
+        eventStreamParser = EventStreamParser()
+        readyState = .connecting
+
+        let configuration = sessionConfiguration(lastEventId: lastEventId)
+        urlSession = URLSession(configuration: configuration, delegate: self, delegateQueue: operationQueue)
+        var request = URLRequest(
+            url: url,
+            cachePolicy: .reloadIgnoringLocalAndRemoteCacheData,
+            timeoutInterval: 20
+        )
+        self.headers.forEach { request.setValue($1, forHTTPHeaderField: $0) }
+        let jsonData = (try? JSONSerialization.data(withJSONObject: params, options: []))
+        let jsonString = String(data: jsonData!, encoding: .utf8)!
+        request.httpBody = jsonString.data(using: .utf8)
+        urlSession?.dataTask(with: request).resume()
+    }
 
     public func disconnect() {
         readyState = .closed
